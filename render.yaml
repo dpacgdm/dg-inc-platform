@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: dg-governance-mcp
+    runtime: docker
+    plan: free
+    repo: https://github.com/dpacgdm/dg-inc-platform
+    branch: main
+    dockerfilePath: ./mcp/dg-governance-mcp/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DG_DATA_DIR
+        value: /app/governance
+      - key: DG_MCP_HOST
+        value: 0.0.0.0
+      - key: DG_MCP_TRANSPORT
+        value: streamable-http
