@@ -1,0 +1,12 @@
+services:
+  dg-governance-mcp:
+    build:
+      context: ../..
+      dockerfile: mcp/dg-governance-mcp/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DG_DATA_DIR: /app/governance
+      DG_MCP_HOST: 0.0.0.0
+      DG_MCP_PORT: 8000
+      DG_MCP_TRANSPORT: streamable-http
