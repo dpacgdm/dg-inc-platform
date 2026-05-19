@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-05-19T10:49:54.575255+00:00",
+  "created_by": "chatgpt-principal-engineer",
+  "id": "0bdeec6a23e0",
+  "investigation_status": "open",
+  "problem_statement": "Synthetic checkout latency scenario needs prevention and detection improvements.",
+  "related_incident_id": "f0f100f54515",
+  "service": "checkout-service",
+  "suspected_causes": [
+    "simulated dependency latency",
+    "missing dashboard readiness gate"
+  ],
+  "type": "problem"
+}

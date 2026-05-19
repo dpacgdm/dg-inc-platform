@@ -1,0 +1,24 @@
+{
+  "created_at": "2026-05-19T10:49:54.539257+00:00",
+  "created_by": "chatgpt-principal-engineer",
+  "customer_impact": "Synthetic users observe slow checkout responses; no real customers impacted.",
+  "detected_by": "dg-governance-smoke-test",
+  "id": "f0f100f54515",
+  "next_actions": [
+    "Generate postmortem skeleton",
+    "Create problem record if recurrence is observed"
+  ],
+  "service": "checkout-service",
+  "severity": "SEV2",
+  "status": "identified",
+  "summary": "Checkout latency above SLO during synthetic validation",
+  "symptoms": [
+    "p95 checkout latency above 2 seconds",
+    "synthetic transaction duration breached warning threshold"
+  ],
+  "timeline": [
+    "Incident created. Initial triage required.",
+    "identified: Synthetic smoke test identified simulated checkout latency as planned scenario."
+  ],
+  "type": "incident"
+}

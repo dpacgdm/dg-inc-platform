@@ -1,0 +1,29 @@
+{
+  "approval_state": "draft",
+  "created_at": "2026-05-19T10:49:54.559284+00:00",
+  "created_by": "chatgpt-principal-engineer",
+  "id": "0f0529edcb4a",
+  "implementation_plan": [
+    "Build image checkout-service:v0.1.0",
+    "Deploy to staging namespace",
+    "Watch rollout until all replicas are available"
+  ],
+  "planned_window_utc": "2026-05-19T18:00:00Z",
+  "policy_findings": [
+    "Critical user journey change requires customer-impact validation and rollback rehearsal."
+  ],
+  "reason": "Validate governance flow and deployment-readiness policy.",
+  "risk": "medium",
+  "rollback_plan": [
+    "Rollback deployment to previous ReplicaSet",
+    "Validate checkout health endpoint and synthetic transaction"
+  ],
+  "service": "checkout-service",
+  "title": "Deploy checkout-service v0.1.0 to staging",
+  "type": "change",
+  "validation_plan": [
+    "Run synthetic checkout request",
+    "Verify p95 latency and error-rate dashboards",
+    "Check application logs for exceptions"
+  ]
+}
