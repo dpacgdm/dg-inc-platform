@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 
 from dg_governance_mcp.models import (
     ChangeCreateRequest,
@@ -278,15 +280,63 @@ def generate_postmortem_skeleton(incident_id: str) -> dict[str, str]:
 
 
 @mcp.custom_route("/health", methods=["GET"])
-async def health(_: Any) -> dict[str, str]:
-    return {"status": "ok", "service": "dg-governance-mcp"}
+async def health(_: Request) -> Response:
+    return JSONResponse({"status": "ok", "service": "dg-governance-mcp"})
+
+
+def _run_streamable_http(host: str, port: int) -> None:
+    """Run Streamable HTTP across multiple MCP SDK versions.
+
+    Newer MCP SDK versions accept host/port in FastMCP.run(). Some installed
+    versions expose Streamable HTTP through streamable_http_app() but reject
+    host/port kwargs on run(). This wrapper keeps local development boring.
+    """
+    try:
+        mcp.run(transport="streamable-http", host=host, port=port)
+        return
+    except TypeError as exc:
+        if "unexpected keyword argument" not in str(exc):
+            raise
+
+    import uvicorn
+
+    try:
+        app = mcp.streamable_http_app(host=host)
+    except TypeError:
+        app = mcp.streamable_http_app()
+
+    uvicorn.run(app, host=host, port=port, log_level="info")
+
+
+def _run_sse(host: str, port: int) -> None:
+    try:
+        mcp.run(transport="sse", host=host, port=port)
+        return
+    except TypeError as exc:
+        if "unexpected keyword argument" not in str(exc):
+            raise
+
+    import uvicorn
+
+    try:
+        app = mcp.sse_app(host=host)
+    except TypeError:
+        app = mcp.sse_app()
+
+    uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 def main() -> None:
     transport = os.getenv("DG_MCP_TRANSPORT", "streamable-http")
     host = os.getenv("DG_MCP_HOST", "127.0.0.1")
     port = int(os.getenv("DG_MCP_PORT", "8000"))
-    mcp.run(transport=transport, host=host, port=port)
+
+    if transport == "streamable-http":
+        _run_streamable_http(host=host, port=port)
+    elif transport == "sse":
+        _run_sse(host=host, port=port)
+    else:
+        mcp.run(transport=transport)
 
 
 if __name__ == "__main__":
