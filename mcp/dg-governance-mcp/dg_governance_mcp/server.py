@@ -24,8 +24,35 @@ from dg_governance_mcp.policy import evaluate_change_policy, evaluate_deployment
 from dg_governance_mcp.store import GovernanceStore
 
 
-DEFAULT_DATA_DIR = Path(__file__).resolve().parents[3] / "governance"
-DATA_DIR = Path(os.getenv("DG_DATA_DIR", str(DEFAULT_DATA_DIR)))
+def _default_data_dir() -> Path:
+    """Return a data directory that works in both repo and container layouts.
+
+    Local repo layout:
+      <repo>/mcp/dg-governance-mcp/dg_governance_mcp/server.py
+      <repo>/governance
+
+    Docker layout:
+      /app/dg_governance_mcp/server.py
+      /app/governance
+    """
+    explicit = os.getenv("DG_DATA_DIR")
+    if explicit:
+        return Path(explicit).resolve()
+
+    current = Path(__file__).resolve()
+    candidates = [
+        current.parents[1] / "governance",  # Docker: /app/governance
+        current.parents[3] / "governance" if len(current.parents) > 3 else None,  # repo layout
+        Path.cwd() / "governance",
+    ]
+    for candidate in candidates:
+        if candidate and candidate.exists():
+            return candidate.resolve()
+
+    return (Path.cwd() / "governance").resolve()
+
+
+DATA_DIR = _default_data_dir()
 
 mcp = FastMCP("D&G Inc Platform Governance")
 store = GovernanceStore(DATA_DIR)
