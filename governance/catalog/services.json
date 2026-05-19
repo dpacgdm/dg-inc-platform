@@ -1,0 +1,50 @@
+[
+  {
+    "name": "identity-service",
+    "tier": "tier-0",
+    "owner": "platform-sre",
+    "critical_user_journey": true,
+    "sli": ["availability", "latency_p95", "auth_success_rate"],
+    "dependencies": ["postgres", "redis"]
+  },
+  {
+    "name": "checkout-service",
+    "tier": "tier-0",
+    "owner": "commerce-sre",
+    "critical_user_journey": true,
+    "sli": ["availability", "latency_p95", "checkout_success_rate", "payment_error_rate"],
+    "dependencies": ["identity-service", "payment-gateway-sim", "postgres", "redis"]
+  },
+  {
+    "name": "payment-gateway-sim",
+    "tier": "tier-0",
+    "owner": "payments-sre",
+    "critical_user_journey": true,
+    "sli": ["availability", "latency_p95", "authorization_success_rate", "idempotency_conflict_rate"],
+    "dependencies": ["postgres", "audit-log"]
+  },
+  {
+    "name": "catalog-service",
+    "tier": "tier-1",
+    "owner": "commerce-sre",
+    "critical_user_journey": true,
+    "sli": ["availability", "latency_p95", "cache_hit_ratio"],
+    "dependencies": ["postgres", "redis"]
+  },
+  {
+    "name": "booking-service",
+    "tier": "tier-1",
+    "owner": "travel-sre",
+    "critical_user_journey": true,
+    "sli": ["availability", "latency_p95", "reservation_success_rate"],
+    "dependencies": ["inventory-service", "postgres", "queue"]
+  },
+  {
+    "name": "stream-metadata-service",
+    "tier": "tier-1",
+    "owner": "media-sre",
+    "critical_user_journey": false,
+    "sli": ["availability", "latency_p95", "metadata_freshness"],
+    "dependencies": ["object-storage", "postgres", "cdn-sim"]
+  }
+]
