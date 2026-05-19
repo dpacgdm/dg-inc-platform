@@ -329,7 +329,7 @@ def _run_sse(host: str, port: int) -> None:
 def main() -> None:
     transport = os.getenv("DG_MCP_TRANSPORT", "streamable-http")
     host = os.getenv("DG_MCP_HOST", "127.0.0.1")
-    port = int(os.getenv("DG_MCP_PORT", "8000"))
+    port = int(os.getenv("DG_MCP_PORT", os.getenv("PORT", "8000")))
 
     if transport == "streamable-http":
         _run_streamable_http(host=host, port=port)
