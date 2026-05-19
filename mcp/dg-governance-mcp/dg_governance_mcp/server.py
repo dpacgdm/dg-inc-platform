@@ -24,6 +24,29 @@ from dg_governance_mcp.policy import evaluate_change_policy, evaluate_deployment
 from dg_governance_mcp.store import GovernanceStore
 
 
+def _create_mcp() -> FastMCP:
+    """Create FastMCP with production HTTP settings when supported."""
+    try:
+        return FastMCP(
+            "D&G Inc Platform Governance",
+            stateless_http=True,
+            json_response=True,
+            streamable_http_path="/mcp",
+        )
+    except TypeError:
+        server = FastMCP("D&G Inc Platform Governance")
+        settings = getattr(server, "settings", None)
+        if settings is not None:
+            for key, value in {
+                "stateless_http": True,
+                "json_response": True,
+                "streamable_http_path": "/mcp",
+            }.items():
+                if hasattr(settings, key):
+                    setattr(settings, key, value)
+        return server
+
+
 def _default_data_dir() -> Path:
     """Return a data directory that works in both repo and container layouts.
 
@@ -54,7 +77,7 @@ def _default_data_dir() -> Path:
 
 DATA_DIR = _default_data_dir()
 
-mcp = FastMCP("D&G Inc Platform Governance")
+mcp = _create_mcp()
 store = GovernanceStore(DATA_DIR)
 
 
@@ -306,18 +329,27 @@ def generate_postmortem_skeleton(incident_id: str) -> dict[str, str]:
     return {"path": str(path), "content": content}
 
 
+@mcp.tool()
+def server_info() -> dict[str, Any]:
+    """Return MCP server runtime and transport configuration."""
+    settings = getattr(mcp, "settings", None)
+    return {
+        "name": "D&G Inc Platform Governance",
+        "data_dir": str(DATA_DIR),
+        "tools_expected": 11,
+        "streamable_http_path": getattr(settings, "streamable_http_path", None),
+        "stateless_http": getattr(settings, "stateless_http", None),
+        "json_response": getattr(settings, "json_response", None),
+    }
+
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(_: Request) -> Response:
     return JSONResponse({"status": "ok", "service": "dg-governance-mcp"})
 
 
 def _run_streamable_http(host: str, port: int) -> None:
-    """Run Streamable HTTP across multiple MCP SDK versions.
-
-    Newer MCP SDK versions accept host/port in FastMCP.run(). Some installed
-    versions expose Streamable HTTP through streamable_http_app() but reject
-    host/port kwargs on run(). This wrapper keeps local development boring.
-    """
+    """Run Streamable HTTP across multiple MCP SDK versions."""
     try:
         mcp.run(transport="streamable-http", host=host, port=port)
         return
@@ -327,29 +359,7 @@ def _run_streamable_http(host: str, port: int) -> None:
 
     import uvicorn
 
-    try:
-        app = mcp.streamable_http_app(host=host)
-    except TypeError:
-        app = mcp.streamable_http_app()
-
-    uvicorn.run(app, host=host, port=port, log_level="info")
-
-
-def _run_sse(host: str, port: int) -> None:
-    try:
-        mcp.run(transport="sse", host=host, port=port)
-        return
-    except TypeError as exc:
-        if "unexpected keyword argument" not in str(exc):
-            raise
-
-    import uvicorn
-
-    try:
-        app = mcp.sse_app(host=host)
-    except TypeError:
-        app = mcp.sse_app()
-
+    app = mcp.streamable_http_app()
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
@@ -360,10 +370,10 @@ def main() -> None:
 
     if transport == "streamable-http":
         _run_streamable_http(host=host, port=port)
-    elif transport == "sse":
-        _run_sse(host=host, port=port)
+    elif transport == "stdio":
+        mcp.run(transport="stdio")
     else:
-        mcp.run(transport=transport)
+        raise ValueError(f"Unsupported transport for D&G governance server: {transport}")
 
 
 if __name__ == "__main__":
