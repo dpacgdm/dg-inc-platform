@@ -32,6 +32,35 @@ bash scripts/smoke/video-platform-smoke.sh
 | postgres | localhost:5432 |
 | redis | localhost:6379 |
 
+## Current dependency paths
+
+Upload path:
+
+```text
+client -> upload-api -> video-metadata-service -> postgres
+                    -> redis queue
+```
+
+Processing path:
+
+```text
+redis queue -> transcoder-worker-sim -> video-metadata-service -> postgres
+```
+
+Playback path:
+
+```text
+client -> playback-api -> video-metadata-service -> postgres
+```
+
+Feed path, temporary v0 shortcut:
+
+```text
+client -> feed-service -> postgres
+```
+
+Feed will be redesigned later as a feed serving/cache layer. The current direct DB read is intentionally tracked as technical debt.
+
 ## Health checks
 
 ```bash
@@ -60,6 +89,7 @@ All services emit JSON-ish structured logs with `service` and `request_id`.
 
 ```bash
 docker compose -f infra/local/docker-compose.yml logs -f upload-api
+docker compose -f infra/local/docker-compose.yml logs -f video-metadata-service
 docker compose -f infra/local/docker-compose.yml logs -f transcoder-worker-sim
 docker compose -f infra/local/docker-compose.yml logs -f playback-api
 ```
@@ -119,7 +149,8 @@ curl -s http://localhost:8005/ready | jq
 
 Expected:
 
-- metadata and playback readiness fail
+- metadata readiness fails because Postgres is unavailable
+- playback readiness fails because playback depends on video-metadata-service
 - customer journey breaks at metadata lookup/persistence
 
 Recover:
@@ -128,15 +159,35 @@ Recover:
 docker compose -f infra/local/docker-compose.yml start postgres
 ```
 
+## Failure scenario 4: metadata service down
+
+```bash
+docker compose -f infra/local/docker-compose.yml stop video-metadata-service
+curl -s http://localhost:8005/ready | jq
+```
+
+Expected:
+
+- playback-api readiness fails
+- playback requests return `metadata_dependency_failed`
+- upload-api readiness also fails because upload registration depends on metadata service
+
+Recover:
+
+```bash
+docker compose -f infra/local/docker-compose.yml start video-metadata-service
+```
+
 ## First 10-minute incident triage
 
 1. Confirm customer journey failure using smoke test.
 2. Check `/ready` for all public services.
 3. Check worker logs and queue backlog.
-4. Check Postgres and Redis container health.
-5. Identify whether failure is synchronous path or async processing path.
-6. Mitigate: restart dependency, restart worker, or stop bad deploy.
-7. Record incident if customer journey is affected.
+4. Check video-metadata-service logs if upload or playback fails.
+5. Check Postgres and Redis container health.
+6. Identify whether failure is synchronous path or async processing path.
+7. Mitigate: restart dependency, restart worker, or stop bad deploy.
+8. Record incident if customer journey is affected.
 
 ## SLO draft
 
